@@ -20,7 +20,7 @@ export const fetchBookByGenre = async (genre) => {
 
 export const fetchLimitBookByGenre = async (genre, page = 1, limit = 10) => {
      try {
-          const response = await fetch(`http://localhost:3000/bookbyGenreLimit/?genre=${genre}&page=${page}&limit=${limit}`);
+          const response = await fetch(`${API_BASE_URL}/bookbyGenreLimit/?genre=${genre}&page=${page}&limit=${limit}`);
 
           if (!response.ok) {
                throw new Error(`Error: ${response.status}`);
@@ -43,7 +43,7 @@ export const fetchLimitBookByGenre = async (genre, page = 1, limit = 10) => {
 
 export const fetchLimitBooks = async (page = 1, limit = 10) => {
      try {
-          const response = await fetch(`http://localhost:3000/limited-books?page=${page}&limit=${limit}`);
+          const response = await fetch(`${API_BASE_URL}/limited-books?page=${page}&limit=${limit}`);
 
           if (!response.ok) {
                throw new Error(`Error: ${response.status}`);
