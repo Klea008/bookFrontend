@@ -1,39 +1,68 @@
 import React, { useState, useEffect } from 'react';
 import {
-     fetchBooks,
+     fetchBooks, fetchLimitBooks, fetchLimitSortedBooks,
      fetchGenre,
      fetchBookByGenre,
      fetchSortedBooks,
+     fetchLimitBookByGenre,
      fetchSearchedBook,
      addBook, updateBook,
      deleteManyBooks
 } from '../services/api'; // Ensure these are correctly implemented
 import { useDarkMode } from '../App'; // Import the useDarkMode hook
 
-const LHome = () => {
+const LHomePaging = () => {
      const [searchQuery, setSearchQuery] = useState('');
 
-     const [books, setBooks] = useState([]);
      const [genres, setGenre] = useState([]);
 
      const [selectedGenre, setSelectedGenre] = useState('All');
-     const [selectedSort, setSelectedSort] = useState('');
+     const [selectedSort, setSelectedSort] = useState('title');
 
+     const [books, setBooks] = useState([]);
      const [selectedBooks, setSelectedBooks] = useState([]); // For multi-select
 
      const [showAddModal, setShowAddModal] = useState(false);
      const [showUpdateModal, setShowUpdateModal] = useState(false);
-
      const [bookToUpdate, setBookToUpdate] = useState(null);
+
      const { darkMode, toggleDarkMode } = useDarkMode(); // Use context
 
+     const [currentPage, setCurrentPage] = useState(1);
+     const [totalPages, setTotalPages] = useState(1);
+     const [limit] = useState(21); // Number of books per page
+     const [loading, setLoading] = useState(false);
 
-     const getAllBooks = () => {
-          fetchBooks().then(setBooks).catch(error => {
+     const getBooks = async (page) => {
+          setLoading(true);
+          try {
+               let data;
+               if (selectedGenre === 'All') {
+                    // Fetch all books if no specific genre is selected
+                    data = await fetchLimitBooks(page, limit);
+               } else {
+                    // Fetch books by the selected genre
+                    data = await fetchLimitBookByGenre(selectedGenre, page, limit);
+               }
+               setBooks(data.books);
+               setTotalPages(data.totalPages);
+          } catch (error) {
                console.error('Error fetching books:', error);
-               setBooks([]);  // Optionally handle errors by setting an empty array
-          });
-     }
+          } finally {
+               setLoading(false);
+          }
+     };
+
+     useEffect(() => {
+          getBooks(currentPage);
+     }, [currentPage]);
+
+     const handlePageChange = (page) => {
+          if (page > 0 && page <= totalPages) {
+               setCurrentPage(page);
+               getBooks(page);  // Fetch the correct books based on genre and page
+          }
+     };
 
      const getAllGenres = () => {
           fetchGenre().then(setGenre).catch(error => {
@@ -44,7 +73,6 @@ const LHome = () => {
      }
 
      useEffect(() => {
-          getAllBooks();
           getAllGenres();
      }, []);
 
@@ -52,31 +80,37 @@ const LHome = () => {
           setSearchQuery(query);
 
           if (!query) {
-               getAllBooks();
-          }
-          else { // Fetch books by the selected genre
+               getBooks(currentPage);  // This fetches books for the current page
+          } else {
                const booksSearch = await fetchSearchedBook(query);
+
                if (booksSearch) {
-                    setBooks(booksSearch);
-               } else { 
-                    getAllBooks();
+                    setBooks(booksSearch.books);
+                    setTotalPages(booksSearch.totalPages);
+               } else {
+                    getBooks(currentPage);  // Ensure pagination still works after a failed search
                }
           }
-
-
      };
 
      const handleGenreClick = async (genre) => {
           setSelectedGenre(genre);
+          setSelectedGenre(genre);
+          setCurrentPage(1);  // Reset to the first page when a new genre is selected
+          getBooks(1);  // Fetch books for the selected genre
+
 
           if (genre === 'All') {
                // Fetch all books if "All of them" is selected
-               const allBooks = await fetchBooks();
-               setBooks(allBooks);
+               const allBooks = await fetchLimitBookByGenre("All", currentPage, limit);
+               setBooks(allBooks.books);
+               setTotalPages(allBooks.totalPages);
+               setCurrentPage(1);
           } else {
                // Fetch books by the selected genre
-               const booksByGenre = await fetchBookByGenre(genre);
-               setBooks(booksByGenre);
+               const booksByGenre = await fetchLimitBookByGenre(genre, currentPage, limit);
+               setBooks(booksByGenre.books);
+               setTotalPages(booksByGenre.totalPages);
           }
      };
 
@@ -84,8 +118,9 @@ const LHome = () => {
           setSelectedSort(sortBy);
 
           // Fetch books by the selected genre
-          const booksSort = await fetchSortedBooks(selectedGenre, sortBy, "desc");
-          setBooks(booksSort);
+          const booksSort = await fetchLimitSortedBooks(limit, page, selectedGenre, sortBy, "desc");
+          setBooks(booksSort.books);
+          setTotalPages(booksSort.totalPages);
 
      };
 
@@ -108,8 +143,7 @@ const LHome = () => {
                          setSelectedBooks([]);
 
                          // Optionally, fetch all books again to ensure the UI is up-to-date
-                         if (!selectedGenre) { getAllBooks(); }
-                         else { handleGenreClick(selectedGenre) }
+                         getBooks(currentPage);
                     })
                     .catch(error => {
                          console.error('Error deleting books:', error);
@@ -121,8 +155,7 @@ const LHome = () => {
           addBook(newBook).then((addedBook) => {
                setBooks(prevBooks => [...prevBooks, addedBook]);
                setShowAddModal(false);
-               if (!selectedGenre) { getAllBooks(); }
-               else { handleGenreClick(selectedGenre) }
+               getBooks(currentPage);
           }).catch(error => {
                console.error('Error adding book:', error);
           });
@@ -133,8 +166,7 @@ const LHome = () => {
                setBooks(prevBooks => prevBooks.map(b => b._id === book._id ? book : b));
                setShowUpdateModal(false);
                setBookToUpdate(null);
-               if (!selectedGenre) { getAllBooks(); }
-               else { handleGenreClick(selectedGenre) }
+               getBooks(currentPage);
           }).catch(error => {
                console.error('Error updating book:', error);
           });
@@ -151,7 +183,7 @@ const LHome = () => {
                                    type="text"
                                    placeholder="Search books..."
                                    value={searchQuery}
-                                   onChange={(e) => handleSearch(e.target.value)}
+                                   onChange={(e) => handleSearch(e.target.value)}  // Pass the input value here
                                    className="border border-gray-300 dark:border-gray-600 rounded p-2 w-1/2 bg-transparent dark:text-white text-sm"
                               />
                          </div>
@@ -168,9 +200,7 @@ const LHome = () => {
                     <div className="container mx-auto">
                          {/* Filter and Sort */}
                          <div className="flex flex-col md:flex-row md:justify-between mb-6">
-
                               <div className="flex items-center space-x-4 mb-4 md:mb-0">
-
                                    <select
                                         value={selectedGenre}
                                         onChange={(e) => handleGenreClick(e.target.value)}  // Use a callback function
@@ -220,38 +250,57 @@ const LHome = () => {
 
                          {/* Books Grid */}
                          <section>
-                              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-4">
-                                   {books.length > 0 ? (
-                                        books.map((book) =>
-                                             <div
-                                                  key={book._id}
-                                                  className={`relative cursor-pointer ${selectedBooks.includes(book._id) ? 'border-4 border-blue-500' : ''}`}
-                                                  onClick={() => handleBookClick(book)}
+                              {loading ? (
+                                   <p>Loading...</p>
+                              ) : (<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-4">
+                                   {books.map((book) => (
+                                        <div
+                                             key={book._id}
+                                             className={`relative cursor-pointer ${selectedBooks.includes(book._id) ? 'border-4 border-blue-500' : ''}`}
+                                             onClick={() => handleBookClick(book)}
+                                        >
+                                             <img
+                                                  src={book.coverImage}
+                                                  alt={book.title}
+                                                  className="w-full h-full rounded-lg shadow-lg object-cover"
+                                             />
+                                             <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white p-2 text-sm rounded-b-lg">
+                                                  {book.title}
+                                             </div>
+                                             <button
+                                                  onClick={(e) => {
+                                                       e.stopPropagation(); // Prevent triggering selection
+                                                       setBookToUpdate(book);
+                                                       setShowUpdateModal(true);
+                                                  }}
+                                                  className="absolute top-2 right-2 px-2 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 text-sm"
                                              >
-                                                  <img
-                                                       src={book.coverImage}
-                                                       alt={book.title}
-                                                       className="w-full h-full rounded-lg shadow-lg object-cover"
-                                                  />
-                                                  <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white p-2 text-sm rounded-b-lg">
-                                                       {book.title}
-                                                  </div>
-                                                  <button
-                                                       onClick={(e) => {
-                                                            e.stopPropagation(); // Prevent triggering selection
-                                                            setBookToUpdate(book);
-                                                            setShowUpdateModal(true);
-                                                       }}
-                                                       className="absolute top-2 right-2 px-2 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 text-sm"
-                                                  >
-                                                       Edit
-                                                  </button>
-                                             </div>)
-                                   ) : (
-                                        <li>No books available for this genre</li>
-                                   )}
-                              </div>
+                                                  Edit
+                                             </button>
+                                        </div>
+                                   ))}
+                              </div>)}
                          </section>
+
+                         <div className="pagination mt-4 flex justify-center">
+                              <button
+                                   onClick={() => handlePageChange(currentPage - 1)}
+                                   disabled={currentPage === 1}
+                                   className="px-4 py-2 bg-blue-500 text-white rounded mr-2"
+                              >
+                                   Previous
+                              </button>
+                              <span className="px-4 py-2">
+                                   Page {currentPage} of {totalPages}
+                              </span>
+                              <button
+                                   onClick={() => handlePageChange(currentPage + 1)}
+                                   disabled={currentPage === totalPages}
+                                   className="px-4 py-2 bg-blue-500 text-white rounded ml-2"
+                              >
+                                   Next
+                              </button>
+                         </div>
                     </div>
                </main>
 
@@ -507,4 +556,4 @@ const LHome = () => {
      );
 };
 
-export default LHome;
+export default LHomePaging;
