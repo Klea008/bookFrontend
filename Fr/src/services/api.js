@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:3000';
+const API_BASE_URL = 'https://db-book.vercel.app';
 
 export const fetchBooks = async () => {
      const response = await fetch(`${API_BASE_URL}/all-books`);
