@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
-     fetchBooks, fetchLimitBooks, fetchLimitSortedBooks,
+     fetchLimitSortedBooks,
      fetchGenre,
-     fetchBookByGenre,
-     fetchSortedBooks,
      fetchLimitBookByGenre,
      fetchSearchedBook,
      addBook, updateBook,
@@ -33,16 +31,16 @@ const LHomePaging = () => {
      const [limit] = useState(21); // Number of books per page
      const [loading, setLoading] = useState(false);
 
-     const getBooks = async (page) => {
+     const getBooks = async (page, genre = selectedGenre, sortBy = selectedSort) => {
           setLoading(true);
           try {
                let data;
-               if (selectedGenre === 'All') {
+               if (genre === 'All') {
                     // Fetch all books if no specific genre is selected
-                    data = await fetchLimitBooks(page, limit);
+                    data = await fetchLimitSortedBooks(page, limit, genre, sortBy, 'desc');
                } else {
                     // Fetch books by the selected genre
-                    data = await fetchLimitBookByGenre(selectedGenre, page, limit);
+                    data = await fetchLimitBookByGenre(genre, page, limit);
                }
                setBooks(data.books);
                setTotalPages(data.totalPages);
@@ -53,9 +51,15 @@ const LHomePaging = () => {
           }
      };
 
+     const handleGenreClick = (genre) => {
+          setSelectedGenre(genre);
+          setCurrentPage(1); // Reset page to 1
+          getBooks(1, genre, selectedSort); // Fetch books for the selected genre and reset to page 1
+     };
+
      useEffect(() => {
-          getBooks(currentPage);
-     }, [currentPage]);
+          getBooks(currentPage, selectedGenre, selectedSort);
+     }, [currentPage, selectedGenre, selectedSort]); 
 
      const handlePageChange = (page) => {
           if (page > 0 && page <= totalPages) {
@@ -93,26 +97,6 @@ const LHomePaging = () => {
           }
      };
 
-     const handleGenreClick = async (genre) => {
-          setSelectedGenre(genre);
-          setSelectedGenre(genre);
-          setCurrentPage(1);  // Reset to the first page when a new genre is selected
-          getBooks(1);  // Fetch books for the selected genre
-
-
-          if (genre === 'All') {
-               // Fetch all books if "All of them" is selected
-               const allBooks = await fetchLimitBookByGenre("All", currentPage, limit);
-               setBooks(allBooks.books);
-               setTotalPages(allBooks.totalPages);
-               setCurrentPage(1);
-          } else {
-               // Fetch books by the selected genre
-               const booksByGenre = await fetchLimitBookByGenre(genre, currentPage, limit);
-               setBooks(booksByGenre.books);
-               setTotalPages(booksByGenre.totalPages);
-          }
-     };
 
      const handleSortClick = async (sortBy) => {
           setSelectedSort(sortBy);
