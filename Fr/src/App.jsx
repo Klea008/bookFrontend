@@ -46,7 +46,7 @@ const App = () => {
                 !user ? (
                   <Login />
                 ) : user.role === 'admin' ? (
-                  <Navigate to="/p" />
+                    <Navigate to="/bl" />
                 ) : (
                   <Navigate to="/lh" />
                 )
