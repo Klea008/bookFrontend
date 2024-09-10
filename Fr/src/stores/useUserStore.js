@@ -21,7 +21,6 @@ const useUserStore = create((set, get) => ({
                }
           } catch (error) {
                set({ loading: false })
-               toast.error(error.response.data.message);
           }
      },
      login: async ({ email, password }) => {
@@ -39,7 +38,6 @@ const useUserStore = create((set, get) => ({
                }
           } catch (error) {
                console.log(error);
-               toast.error(error.response.data.message);
           }
      },
      logout: async () => {
@@ -53,7 +51,6 @@ const useUserStore = create((set, get) => ({
                }
           } catch (error) {
                console.log(error);
-               toast.error(error.response.data.message);
           }
      },
      checkAuth: async () => {
