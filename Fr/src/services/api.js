@@ -87,7 +87,6 @@ export const fetchLimitSortedBooks = async (page = 1, limit = 10, genre, sortBy,
      }
 };
 
-
 export const fetchBookById = async (id) => {
      const response = await fetch(`${API_BASE_URL}/book/${id}`);
      const data = await response.json();

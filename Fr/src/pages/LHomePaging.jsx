@@ -37,7 +37,7 @@ const LHomePaging = () => {
                let data;
                if (genre === 'All') {
                     // Fetch all books if no specific genre is selected
-                    data = await fetchLimitSortedBooks(page, limit, genre, sortBy, 'desc');
+                    data = await fetchLimitSortedBooks(page, limit, genre, sortBy, 'asc');
                } else {
                     // Fetch books by the selected genre
                     data = await fetchLimitBookByGenre(genre, page, limit);
@@ -99,10 +99,11 @@ const LHomePaging = () => {
 
 
      const handleSortClick = async (sortBy) => {
+          
           setSelectedSort(sortBy);
 
           // Fetch books by the selected genre
-          const booksSort = await fetchLimitSortedBooks(limit, page, selectedGenre, sortBy, "desc");
+          const booksSort = await fetchLimitSortedBooks(limit, page, selectedGenre, sortBy, "asc");
           setBooks(booksSort.books);
           setTotalPages(booksSort.totalPages);
 
@@ -188,7 +189,7 @@ const LHomePaging = () => {
                                    <select
                                         value={selectedGenre}
                                         onChange={(e) => handleGenreClick(e.target.value)}  // Use a callback function
-                                        className="border border-gray-300 dark:border-gray-600 rounded p-2 bg-transparent dark:text-white text-sm"
+                                        className="text-black border border-gray-300 dark:border-gray-600 rounded p-2 bg-transparent dark:text-white text-sm"
                                    >
                                         <option // Add a key prop
                                              value={"All"}  // Use the genre as the value
@@ -211,7 +212,7 @@ const LHomePaging = () => {
                                    {<select
                                         value={selectedSort}
                                         onChange={(e) => handleSortClick(e.target.value)}
-                                        className="border border-gray-300 dark:border-gray-600 rounded p-2 bg-transparent dark:text-white text-sm"
+                                        className="border border-gray-300 dark:border-gray-600 rounded p-2 bg-transparent dark:text-white  text-sm"
                                    >
                                         <option value="title" className='bg-white dark:bg-gray-900 text-black dark:text-white'>Sort by Title</option>
                                         <option value="date" className='bg-white dark:bg-gray-900 text-black dark:text-white'>Sort by Date</option>
